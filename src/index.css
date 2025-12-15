@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+.btn-primary {
+    padding: 0.5rem 1rem;
+    background-color: rgb(79 70 229);
+    color: white;
+    border-radius: 0.5rem;
+    transition-property: background-color;
+    transition-duration: 200ms;
+    font-weight: 500;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: rgb(67 56 202);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    padding: 0.5rem 1rem;
+    background-color: rgb(229 231 235);
+    color: rgb(31 41 55);
+    border-radius: 0.5rem;
+    transition-property: background-color;
+    transition-duration: 200ms;
+    font-weight: 500;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: rgb(209 213 219);
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    padding: 1.5rem;
+}
+
+.input-field {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: 1px solid rgb(209 213 219);
+    border-radius: 0.5rem;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+}
+
+.input-field:focus {
+    outline: 2px solid rgb(79 70 229);
+    border-color: transparent;
+}

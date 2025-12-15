@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Bowling Coach Web</string>
+    <string name="title_activity_main">Bowling Coach Web</string>
+    <string name="package_name">com.bowlingcoach.webapp</string>
+    <string name="custom_url_scheme">com.bowlingcoach.webapp</string>
+</resources>
