@@ -77,7 +77,7 @@ export default function VideoGallery({ clips, onDownload }: VideoGalleryProps) {
       {/* Video Modal */}
       {selectedClip && (
         <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 pt-safe-top pb-safe-bottom pl-safe-left pr-safe-right"
           onClick={() => setSelectedClip(null)}
         >
           <div className="max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>

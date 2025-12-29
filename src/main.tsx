@@ -30,6 +30,11 @@ createRoot(document.getElementById('root')!).render(
           <App />
           <Toaster
           position="top-right"
+          containerStyle={{
+            // Account for safe area inset on notched devices (iPhone, etc.)
+            top: 'max(env(safe-area-inset-top, 0px), 20px)',
+            right: 'env(safe-area-inset-right, 0px)',
+          }}
           toastOptions={{
             duration: 4000,
             style: {

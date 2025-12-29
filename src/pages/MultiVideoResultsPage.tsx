@@ -1,17 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Share2, Film, Eye, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Share2, Film, TrendingUp } from 'lucide-react';
 import { ParameterCard } from '../components/Results';
 import { LoadingSpinner, Button, Badge } from '../components/Common';
-import { AngleSelectionBanner } from '../components/MultiVideo';
 import AnalysisService from '../services/analysis';
 import type { MultiVideoAnalysisResult, CameraAngle } from '../types';
-import type { AngleSelection } from '../components/MultiVideo';
 
 export default function MultiVideoResultsPage() {
   const navigate = useNavigate();
   const { analysisId } = useParams<{ analysisId: string }>();
-  const [tab, setTab] = useState('report'); // report | angles | gallery | feedback
+  const [tab, setTab] = useState('report'); // report | video | feedback
   const [result, setResult] = useState<MultiVideoAnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
@@ -81,7 +79,7 @@ export default function MultiVideoResultsPage() {
   }
 
   // Backend returns aggregated score from multi-video analysis
-  const overallScore = result.overall_score || result.aggregated?.overallScore || 0;
+  const overallScore = Number((result.overall_score || result.aggregated?.overallScore || 0).toFixed(1));
   
   // Get parameters from new array format or old aggregated format
   let parameters: Record<string, any> = {};
@@ -117,7 +115,7 @@ export default function MultiVideoResultsPage() {
   const videoCount = result.videoCount || videoAngles.length;
 
   return (
-    <div className="h-full bg-slate-50 flex flex-col">
+    <div className="h-full bg-slate-50 flex flex-col pt-safe-top pb-safe-bottom">
       {/* Header */}
       <div className="bg-white shadow-sm p-4 pt-6 flex items-center justify-between z-10 sticky top-0">
         <Button
@@ -140,21 +138,12 @@ export default function MultiVideoResultsPage() {
             </Button>
             <Button
               variant="ghost"
-              onClick={() => setTab('angles')}
+              onClick={() => setTab('video')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                tab === 'angles' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'
+                tab === 'video' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'
               }`}
             >
-              Angles
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setTab('gallery')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                tab === 'gallery' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'
-              }`}
-            >
-              Gallery
+              Video
             </Button>
             <Button
               variant="ghost"
@@ -265,94 +254,8 @@ export default function MultiVideoResultsPage() {
           </div>
         )}
 
-        {tab === 'angles' && (
-          <div className="p-4 space-y-4 animate-in fade-in pb-20">
-            {/* New AngleSelectionBanner Component */}
-            {(() => {
-              if (!result.parameters || !Array.isArray(result.parameters)) {
-                return (
-                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-8 text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                      <Eye size={32} className="text-emerald-500" />
-                    </div>
-                    <h4 className="font-bold text-emerald-900 mb-2 text-lg">Smart Angle Selection</h4>
-                    <p className="text-sm text-slate-700">No angle selection data available.</p>
-                  </div>
-                );
-              }
-
-              // Transform parameters into AngleSelection format
-              const angleSelections: AngleSelection[] = result.parameters.map((param: any) => {
-                const paramName = param.name || param.parameter_name;
-                const bestAngle = param.best_angle || 'auto';
-                const confidence = param.confidence || 0.85; // Default confidence
-                
-                // Generate reasoning based on parameter and angle
-                const generateReason = (paramName: string, angle: string) => {
-                  const reasonMap: Record<string, Record<string, string>> = {
-                    'front': {
-                      'default': 'Clear frontal view of body alignment and posture',
-                      'arm_rotation': 'Highest rotation visibility',
-                      'front_arm': 'Best view of front arm extension',
-                      'knee_bend': 'Optimal knee angle measurement'
-                    },
-                    'side': {
-                      'default': 'Ideal side profile for biomechanical analysis',
-                      'back_foot': 'Best back foot positioning visibility',
-                      'follow_through': 'Complete follow-through arc visible',
-                      'bowling_arm': 'Full bowling arm trajectory'
-                    },
-                    'back': {
-                      'default': 'Comprehensive rear view of technique',
-                      'shoulder_alignment': 'Shoulder alignment clearly visible',
-                      'hip_alignment': 'Hip rotation measurement optimal'
-                    }
-                  };
-                  
-                  return reasonMap[angle.toLowerCase()]?.[paramName] || 
-                         reasonMap[angle.toLowerCase()]?.['default'] || 
-                         `Best view for ${paramName.replace(/_/g, ' ')} analysis`;
-                };
-                
-                // Generate alternate angles with confidence scores
-                const allAngles = [
-                  { angle: 'front', confidence: bestAngle === 'front' ? confidence : confidence * 0.7, available: true },
-                  { angle: 'side', confidence: bestAngle === 'side' ? confidence : confidence * 0.75, available: true },
-                  { angle: 'back', confidence: bestAngle === 'back' ? confidence : confidence * 0.65, available: result.parameters.length > 3 }
-                ];
-                
-                return {
-                  parameterName: paramName.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-                  bestAngle: bestAngle,
-                  reason: generateReason(paramName, bestAngle),
-                  confidence: confidence,
-                  allAngles: allAngles
-                };
-              });
-
-              return <AngleSelectionBanner selections={angleSelections} />;
-            })()}
-          </div>
-        )}
-
-        {tab === 'gallery' && (
-          <div className="pb-20 bg-slate-50 min-h-screen">
-            {/* Header - Sticky */}
-            <div className="bg-white border-b border-slate-200 p-4 sticky top-0 z-10 shadow-sm">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-bold text-slate-800 text-lg">Technique Clips</h3>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    Swipe or tap thumbnails to view all parameters
-                  </p>
-                </div>
-                <Badge variant="info" size="sm">
-                  <Film size={12} className="inline mr-1" />
-                  {parameterEntries.length}
-                </Badge>
-              </div>
-            </div>
-
+        {tab === 'video' && (
+          <div className="animate-in fade-in">
             {/* Instagram-style Clips Gallery */}
             {(() => {
               // Extract clips from parameters
@@ -401,50 +304,43 @@ export default function MultiVideoResultsPage() {
                 <div className="space-y-0">
                   {/* Main Clip Viewer - Full Width */}
                   <div className="bg-black">
-                    {/* Video Container */}
+                    {/* Video Container - No overlays needed, backend adds all annotations */}
                     <div className="relative aspect-video bg-black">
                       <video
                         key={currentClip.name}
                         className="w-full h-full object-contain"
                         src={getFullMediaUrl(currentClip.path)}
-                        controls
+                        autoPlay
+                        muted
                         playsInline
                         loop
                       >
                         Your browser does not support the video tag.
                       </video>
-                      
-                      {/* Score Badge */}
-                      <div className="absolute top-4 right-4 z-10">
-                        <div className={`px-3 py-1.5 rounded-full font-bold text-base shadow-lg ${
-                          currentClip.score >= 80 
-                            ? 'bg-emerald-500 text-white' 
-                            : currentClip.score >= 60 
-                            ? 'bg-amber-500 text-white' 
-                            : 'bg-red-500 text-white'
-                        }`}>
-                          {currentClip.score.toFixed(1)}
-                        </div>
-                      </div>
-                      
-                      {/* Best Angle Badge */}
-                      <div className="absolute top-4 left-4 z-10">
-                        <div className="px-3 py-1.5 bg-slate-900/90 backdrop-blur-sm rounded-full text-xs font-medium text-white capitalize">
-                          📹 {currentClip.angle} View
-                        </div>
-                      </div>
                     </div>
                     
-                    {/* Clip Info Bar */}
-                    <div className="px-4 py-3 bg-slate-900 text-white">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-base">{formatName(currentClip.name)}</h4>
-                          <p className="text-slate-400 text-xs mt-0.5">Parameter {currentClipIndex + 1} of {clipsData.length}</p>
-                        </div>
-                        <div className="text-right text-xs text-slate-400">
-                          Best angle<br/>selected
-                        </div>
+                    {/* Quick Parameter Selector Pills */}
+                    <div className="p-4 bg-slate-800">
+                      <p className="text-xs text-slate-400 mb-3 uppercase tracking-wide">Select Parameter to View</p>
+                      <div className="flex flex-wrap gap-2">
+                        {clipsData.map((clip, index) => (
+                          <button
+                            key={clip.name}
+                            onClick={() => setCurrentClipIndex(index)}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+                              index === currentClipIndex
+                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            <span className="truncate max-w-[100px]">{formatName(clip.name)}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${
+                              clip.score >= 80 ? 'bg-emerald-600' : clip.score >= 60 ? 'bg-amber-600' : 'bg-red-600'
+                            }`}>
+                              {clip.score.toFixed(0)}
+                            </span>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>

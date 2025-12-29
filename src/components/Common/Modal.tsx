@@ -42,7 +42,7 @@ export const Modal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-safe-top pb-safe-bottom pl-safe-left pr-safe-right bg-black/50 backdrop-blur-sm animate-in fade-in"
       onClick={closeOnBackdrop ? onClose : undefined}
     >
       <div

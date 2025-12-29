@@ -213,7 +213,7 @@ export default function MultiVideoProcessingPage() {
   const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
 
   return (
-    <div className="min-h-full bg-slate-900 text-white flex flex-col items-center p-8 relative overflow-y-auto">
+    <div className="min-h-full bg-slate-900 text-white flex flex-col items-center p-8 relative overflow-y-auto pt-safe-top pb-safe-bottom">
       {/* Background Visuals */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-1/4 left-0 w-full h-px bg-emerald-500/50" />

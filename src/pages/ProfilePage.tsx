@@ -102,7 +102,7 @@ export default function ProfilePage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-slate-900 py-8 px-4">
+      <div className="min-h-screen bg-slate-900 py-8 px-4 pt-safe-top pb-safe-bottom">
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}
           <Button

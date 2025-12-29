@@ -18,7 +18,7 @@ export default function Navigation() {
   const location = useLocation();
 
   return (
-    <nav className="bg-slate-900 border-t border-slate-700 fixed bottom-0 left-0 right-0 z-50 md:relative md:border-t-0 md:border-b">
+    <nav className="bg-slate-900 border-t border-slate-700 fixed bottom-0 left-0 right-0 z-50 md:relative md:border-t-0 md:border-b pb-safe-bottom">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-around md:justify-start md:gap-8">
           {navItems.map((item) => {

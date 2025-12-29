@@ -46,8 +46,9 @@ class UserService {
   ): Promise<{ success: boolean; message: string }> {
     // Use axios directly with correct backend URL
     // Note: From Android emulator, use 10.0.2.2 to reach host machine's localhost
-    const baseURL = import.meta.env.VITE_API_URL || 'http://10.0.2.2:8000/api/v2';
-    const backendURL = baseURL.replace('/api/v2', '').replace('localhost', '10.0.2.2');
+    const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v2';
+    // const backendURL = baseURL.replace('/api/v2', '').replace('localhost', '10.0.2.2');
+    const backendURL = baseURL.replace('/api/v2', '');
     
     const response = await axios.put<{ success: boolean; message: string }>(
       `${backendURL}/api/user/profile`,

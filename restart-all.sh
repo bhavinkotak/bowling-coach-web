@@ -144,10 +144,17 @@ echo "🔨 Building frontend web app..."
 npm run build
 echo "✅ Frontend built"
 
-# 4. Sync to Android
-echo "📱 Syncing to Android..."
+# Clean up previous iOS builds to avoid xcodebuild errors
+if [ -d "ios/App/build" ]; then
+    echo "🧹 Cleaning up previous iOS build artifacts..."
+    rm -rf ios/App/build
+fi
+
+# 4. Sync to Mobile
+echo "📱 Syncing to Android & iOS..."
 npx cap sync android
-echo "✅ Synced to Android"
+npx cap sync ios
+echo "✅ Synced to mobile platforms"
 
 # 5. Check emulator status and start if needed
 echo "📱 Checking emulator status..."
@@ -312,6 +319,71 @@ else
     exit 1
 fi
 
+# 8. Build and deploy iOS App (if on macOS)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo ""
+    echo "🍎 Starting iOS Deployment..."
+    cd "$SCRIPT_DIR"
+    
+    # Check for Xcode tools
+    if ! command -v xcrun &> /dev/null; then
+        echo "⚠️  xcrun not found. Skipping iOS deployment."
+    else
+        # Find a Simulator
+        echo "🔍 Looking for iPhone simulator..."
+        SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone" | grep -v "SE" | sort -r | head -n 1 | awk -F '[()]' '{print $2}')
+        
+        if [ -z "$SIMULATOR_ID" ]; then
+            SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone" | head -n 1 | awk -F '[()]' '{print $2}')
+        fi
+        
+        if [ -n "$SIMULATOR_ID" ]; then
+            SIMULATOR_NAME=$(xcrun simctl list devices available | grep "$SIMULATOR_ID" | head -n 1 | awk -F '(' '{print $1}' | xargs)
+            echo "📱 Found Simulator: $SIMULATOR_NAME ($SIMULATOR_ID)"
+            
+            # Boot Simulator
+            echo "🚀 Booting simulator..."
+            xcrun simctl boot "$SIMULATOR_ID" 2>/dev/null || echo "   Simulator already booted"
+            open -a Simulator
+            
+            # Build iOS App
+            echo "🔨 Building iOS App (check logs/ios-build.log)..."
+            cd "$SCRIPT_DIR/ios/App"
+            
+            # Build using xcodebuild
+            if xcodebuild -workspace App.xcworkspace \
+                       -scheme App \
+                       -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+                       -configuration Debug \
+                       -derivedDataPath build \
+                       clean build \
+                       CODE_SIGNING_ALLOWED=NO > "$SCRIPT_DIR/logs/ios-build.log" 2>&1; then
+                
+                echo "✅ iOS App built successfully"
+                
+                APP_PATH="$SCRIPT_DIR/ios/App/build/Build/Products/Debug-iphonesimulator/App.app"
+                
+                if [ -d "$APP_PATH" ]; then
+                    echo "📲 Installing App on Simulator..."
+                    xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
+                    
+                    echo "🚀 Launching iOS App..."
+                    xcrun simctl launch "$SIMULATOR_ID" "com.bowlingcoach.webapp"
+                    echo "✅ iOS App Launched!"
+                else
+                    echo "❌ App bundle not found at expected path"
+                fi
+            else
+                echo "❌ iOS Build failed. Check logs: $SCRIPT_DIR/logs/ios-build.log"
+            fi
+            
+            cd "$SCRIPT_DIR"
+        else
+            echo "⚠️  No iPhone simulator found. Skipping iOS deployment."
+        fi
+    fi
+fi
+
 echo ""
 echo "================================================"
 echo "✅ RESTART COMPLETE - ALL SERVICES RUNNING!"
@@ -324,21 +396,25 @@ echo "   API Docs:        http://localhost:8000/docs"
 echo "   Emulator API:    http://10.0.2.2:8000 (from emulator)"
 echo ""
 echo "📱 App Status:"
-echo "   Deployed to emulator and running"
+echo "   Android: Deployed to emulator and running"
+echo "   iOS:     Deployed to simulator and running (if on macOS)"
 echo "   Package: com.bowlingcoach.webapp"
 echo ""
 echo "📋 View Logs:"
 echo "   Backend:   tail -f $SCRIPT_DIR/logs/backend.log"
 echo "   Emulator:  tail -f $SCRIPT_DIR/logs/emulator.log"
+echo "   iOS Build: tail -f $SCRIPT_DIR/logs/ios-build.log"
 echo "   App Logs:  adb logcat | grep -E '(bowlingcoach|Console)'"
 echo ""
 echo "🔍 Check Status:"
 echo "   Backend:   curl http://localhost:8000/health"
 echo "   Emulator:  adb devices"
+echo "   iOS Sim:   xcrun simctl list devices booted"
 echo "   Processes: ps aux | grep -E 'uvicorn|emulator'"
 echo ""
 echo "🔄 Quick Commands:"
-echo "   Restart app:    adb shell am start -n com.bowlingcoach.webapp/.MainActivity"
-echo "   View app logs:  adb logcat -c && adb logcat | grep -E '(bowlingcoach|Console)'"
-echo "   Stop backend:   kill \$(cat $BACKEND_DIR/backend.pid)"
+echo "   Restart Android: adb shell am start -n com.bowlingcoach.webapp/.MainActivity"
+echo "   Restart iOS:     xcrun simctl launch booted com.bowlingcoach.webapp"
+echo "   View app logs:   adb logcat -c && adb logcat | grep -E '(bowlingcoach|Console)'"
+echo "   Stop backend:    kill \$(cat $BACKEND_DIR/backend.pid)"
 echo ""

@@ -131,7 +131,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen bg-slate-900 flex flex-col p-6 relative overflow-hidden">
+    <div className="h-screen bg-slate-900 flex flex-col p-6 relative overflow-hidden pt-safe-top pb-safe-bottom">
       {/* Background Pattern */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-emerald-900/20 to-transparent pointer-events-none" />
       <Activity className="absolute -top-10 -right-10 text-slate-800 opacity-50" size={200} />

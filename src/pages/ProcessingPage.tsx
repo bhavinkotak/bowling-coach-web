@@ -165,7 +165,7 @@ export default function ProcessingPage() {
 
   if (isError) {
     return (
-      <div className="h-full bg-slate-900 text-white flex flex-col items-center justify-center p-8">
+      <div className="h-full bg-slate-900 text-white flex flex-col items-center justify-center p-8 pt-safe-top pb-safe-bottom">
         <div className="text-center max-w-md">
           <div className="w-20 h-20 bg-red-500/20 rounded-2xl flex items-center justify-center mb-4 mx-auto border-2 border-red-500/30">
             <span className="text-4xl">❌</span>
@@ -231,7 +231,7 @@ export default function ProcessingPage() {
   });
 
   return (
-    <div className="h-full bg-slate-900 text-white flex flex-col items-center justify-center p-8 relative overflow-hidden">
+    <div className="h-full bg-slate-900 text-white flex flex-col items-center justify-center p-8 relative overflow-hidden pt-safe-top pb-safe-bottom">
       {/* Background Visuals */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-1/4 left-0 w-full h-px bg-emerald-500/50" />

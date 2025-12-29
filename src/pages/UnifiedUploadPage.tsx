@@ -296,7 +296,7 @@ export default function UnifiedUploadPage() {
   };
 
   return (
-    <div className="h-full bg-slate-900 text-white flex flex-col">
+    <div className="h-full bg-slate-900 text-white flex flex-col pt-safe-top pb-safe-bottom">
       {/* Header */}
       <div className="p-4 flex items-center justify-between">
         <Button

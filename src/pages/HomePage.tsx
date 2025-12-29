@@ -157,8 +157,8 @@ export default function HomePage() {
   return (
     <div className="flex flex-col h-full bg-slate-50">
       {/* Header */}
-      <header className="bg-slate-900 text-white p-6 pb-8 rounded-b-3xl shadow-lg relative">
-        <div className="flex justify-between items-center mb-6">
+      <header className="bg-slate-900 text-white p-6 pb-8 rounded-b-3xl shadow-lg relative pt-safe-top">
+        <div className="flex justify-between items-center mb-6 mt-2">
           <div>
             <h1 className="text-slate-400 text-sm">Welcome back,</h1>
             <h2 className="text-2xl font-bold">{user?.name || 'Guest'}</h2>

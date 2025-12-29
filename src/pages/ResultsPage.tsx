@@ -1,30 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Share2, AlertCircle, TrendingUp, Play, Pause, Maximize, Minimize } from 'lucide-react';
+import { ArrowLeft, Share2, AlertCircle, TrendingUp, Play } from 'lucide-react';
 import { useResultsStore } from '../stores/resultsStore';
 import { ParameterCard } from '../components/Results';
 import { LoadingSpinner, Button, Badge } from '../components/Common';
-import { SnapshotGallery, SnapshotLightbox } from '../components/Gallery';
-import { VideoPlayerModal } from '../components/VideoPlayer';
+import { SnapshotLightbox } from '../components/Gallery';
 import AnalysisService from '../services/analysis';
 import type { AnalysisResult } from '../types';
 import type { Snapshot } from '../components/Gallery';
-import type { VideoClip } from '../components/VideoPlayer';
-
-// Keyframe marker interface
-interface KeyframeMarker {
-  timestamp: number;
-  label: string;
-  parameterName: string;
-}
-
-// Helper function to format time in MM:SS format
-const formatTime = (seconds: number): string => {
-  if (!seconds || !isFinite(seconds)) return '0:00';
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
 
 export default function ResultsPage() {
   const navigate = useNavigate();
@@ -38,27 +21,12 @@ export default function ResultsPage() {
   // Ref for scrollable content container
   const contentContainerRef = useRef<HTMLDivElement>(null);
   
-  // Lazy loading states for media assets
-  const [mediaLoaded, setMediaLoaded] = useState(false);
-  const [loadedSnapshots, setLoadedSnapshots] = useState<Record<string, string>>({});
-  
-  // Video player state
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const videoContainerRef = useRef<HTMLDivElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [keyframes, setKeyframes] = useState<KeyframeMarker[]>([]);
-  const [selectedKeyframe, setSelectedKeyframe] = useState<string | null>(null);
-  const [loopingClip, setLoopingClip] = useState<{ start: number; end: number } | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  
-  // New gallery and video modal state
+  // Gallery state for lightbox
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
-  const [selectedVideoClip, setSelectedVideoClip] = useState<VideoClip | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  
+  // Featured clip selector state (for Video tab)
+  const [featuredClipIndex, setFeaturedClipIndex] = useState(0);
 
   // Helper to construct full URL from relative backend path
   const getFullMediaUrl = (relativePath: string | undefined): string => {
@@ -73,89 +41,6 @@ export default function ResultsPage() {
     const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v2', '') || 'http://localhost:8000';
     return `${baseUrl}${relativePath}`;
   };
-
-  // Helper functions for video player
-  const handlePlayPause = () => {
-    if (!videoRef.current) return;
-    
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
-    setCurrentTime(videoRef.current.currentTime);
-    
-    // Handle clip looping
-    if (loopingClip && videoRef.current.currentTime >= loopingClip.end) {
-      videoRef.current.currentTime = loopingClip.start;
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (!videoRef.current) return;
-    setDuration(videoRef.current.duration);
-  };
-
-  const seekToKeyframe = (timestamp: number, parameterName: string) => {
-    if (!videoRef.current) return;
-    
-    // Seek to timestamp
-    videoRef.current.currentTime = timestamp;
-    setSelectedKeyframe(parameterName);
-    
-    // Set up looping around this keyframe (-0.5s to +0.5s)
-    const loopStart = Math.max(0, timestamp - 0.5);
-    const loopEnd = Math.min(duration, timestamp + 0.5);
-    setLoopingClip({ start: loopStart, end: loopEnd });
-    
-    // Auto-play the clip
-    videoRef.current.play();
-    setIsPlaying(true);
-  };
-
-  const stopLooping = () => {
-    setLoopingClip(null);
-    setSelectedKeyframe(null);
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !videoRef.current.muted;
-    setIsMuted(!isMuted);
-  };
-
-  const toggleFullscreen = async () => {
-    if (!videoContainerRef.current) return;
-
-    try {
-      if (!document.fullscreenElement) {
-        // Enter fullscreen
-        await videoContainerRef.current.requestFullscreen();
-        setIsFullscreen(true);
-      } else {
-        // Exit fullscreen
-        await document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    } catch (error) {
-      console.error('Error toggling fullscreen:', error);
-    }
-  };
-
-  // Listen for fullscreen changes (e.g., user pressing ESC)
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
 
   useEffect(() => {
     const fetchResult = async () => {
@@ -212,123 +97,6 @@ export default function ResultsPage() {
     }
   }, [tab]);
 
-  // Lazy load media assets (snapshots and clips) after initial result is loaded
-  useEffect(() => {
-    if (!result || mediaLoaded) return;
-    
-    const loadMediaAssets = async () => {
-      try {
-        // Extract snapshots and clips
-        const snapshots = result.videoInfo?.parameterSnapshots || 
-                         result.video_info?.parameter_snapshots || {};
-        
-        const clips = result.videoInfo?.parameterClips || 
-                     result.video_info?.parameter_clips || {};
-        
-        console.log('📸 Lazy loading media assets...');
-        console.log('- Snapshots:', Object.keys(snapshots).length);
-        console.log('- Clips:', Object.keys(clips).length);
-        
-        // Pre-load snapshot images to cache them
-        const snapshotPromises = Object.entries(snapshots).map(async ([param, url]) => {
-          try {
-            const img = new Image();
-            img.src = url as string;
-            await new Promise((resolve, reject) => {
-              img.onload = resolve;
-              img.onerror = reject;
-            });
-            return [param, url];
-          } catch (error) {
-            console.warn(`Failed to preload snapshot for ${param}:`, error);
-            return [param, url]; // Still include it even if preload fails
-          }
-        });
-        
-        const loadedSnapshotsArray = await Promise.all(snapshotPromises);
-        const snapshotsMap = Object.fromEntries(loadedSnapshotsArray);
-        
-        setLoadedSnapshots(snapshotsMap);
-        // Clips loaded but not used yet (reserved for future enhancement)
-        console.log('- Clips available:', Object.keys(clips).length);
-        setMediaLoaded(true);
-        
-        console.log('✅ Media assets loaded successfully');
-      } catch (error) {
-        console.error('Failed to lazy load media assets:', error);
-        // Still mark as loaded to prevent infinite retries
-        setMediaLoaded(true);
-      }
-    };
-    
-    // Delay media loading slightly to prioritize initial render
-    const timeoutId = setTimeout(() => {
-      loadMediaAssets();
-    }, 300);
-    
-    return () => clearTimeout(timeoutId);
-  }, [result, mediaLoaded]);
-
-  // Extract keyframes from parameter snapshots when result is loaded
-  useEffect(() => {
-    if (!result) return;
-    
-    // Use snapshots as the source of truth for keyframes
-    const snapshots = result.videoInfo?.parameterSnapshots || 
-                     result.video_info?.parameter_snapshots || {};
-    const extractedKeyframes: KeyframeMarker[] = [];
-    
-    // Backend should provide clip metadata with timestamps
-    // For now, we'll estimate based on parameter names and video duration
-    const videoDuration = (result.video_info?.duration || (result.videoInfo as any)?.duration || 10) as number;
-    
-    // Define typical bowling action sequence with better labels
-    const parameterSequence: Record<string, { order: number; label: string }> = {
-      'run_up': { order: 1, label: 'Run-up' },
-      'back_foot_contact': { order: 2, label: 'Back Foot' },
-      'front_foot_contact': { order: 3, label: 'Front Foot' },
-      'release_point': { order: 4, label: 'Release' },
-      'follow_through': { order: 5, label: 'Follow-through' },
-      'bound': { order: 6, label: 'Bound' },
-      'hip_separation': { order: 3, label: 'Hip Separation' },
-      'front_arm': { order: 4, label: 'Front Arm' },
-      'bowling_arm_angle': { order: 4, label: 'Bowling Arm' },
-    };
-    
-    // Count how many parameters we have
-    const snapshotKeys = Object.keys(snapshots);
-    const totalParams = snapshotKeys.length;
-    
-    if (totalParams === 0) {
-      setKeyframes([]);
-      return;
-    }
-    
-    snapshotKeys.forEach((paramName) => {
-      const paramInfo = parameterSequence[paramName];
-      const order = paramInfo?.order || 4; // Default to mid-action
-      const label = paramInfo?.label || paramName
-        .split('_')
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ');
-      
-      // Estimate timestamp based on typical bowling action sequence
-      // Spread across video duration proportionally
-      const estimatedTimestamp = (videoDuration / (totalParams + 1)) * order;
-      
-      extractedKeyframes.push({
-        timestamp: Math.min(estimatedTimestamp, videoDuration * 0.95), // Cap at 95% of duration
-        label,
-        parameterName: paramName,
-      });
-    });
-    
-    // Sort by timestamp
-    extractedKeyframes.sort((a, b) => a.timestamp - b.timestamp);
-    
-    setKeyframes(extractedKeyframes);
-  }, [result]);
-
   if (isLoading) {
     return (
       <div className="h-full bg-slate-50 flex items-center justify-center">
@@ -354,12 +122,13 @@ export default function ResultsPage() {
   }
 
   // Backend returns score nested in analysis or feedback objects
-  const overallScore = 
+  const overallScore = Number((
     result.overallScore || 
     result.overall_score || 
     result.analysis?.overall_score || 
     (result.feedback as any)?.overall_score || 
-    0;
+    0
+  ).toFixed(1));
   
   // Transform backend response structure to expected format
   const rawParameters = result.parameters || result.analysis || {};
@@ -383,15 +152,15 @@ export default function ResultsPage() {
   return (
     <div className="h-full bg-slate-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-sm p-4 pt-6 flex items-center justify-between z-10 sticky top-0">
+      <div className="bg-white shadow-sm p-4 pt-safe-top flex items-center justify-between z-10 sticky top-0">
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
-          className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full min-w-fit"
+          className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full min-w-fit mt-2"
         >
           <ArrowLeft size={24} />
         </Button>
-        <div className="flex bg-slate-100 p-1 rounded-lg">
+        <div className="flex bg-slate-100 p-1 rounded-lg mt-2">
           <Button
             variant="ghost"
             onClick={() => setTab('report')}
@@ -422,7 +191,7 @@ export default function ResultsPage() {
         </div>
         <Button
           variant="ghost"
-          className="p-2 text-slate-600 hover:bg-slate-100 rounded-full min-w-fit"
+          className="p-2 text-slate-600 hover:bg-slate-100 rounded-full min-w-fit mt-2"
         >
           <Share2 size={24} />
         </Button>
@@ -532,411 +301,199 @@ export default function ResultsPage() {
         )}
 
         {tab === 'video' && (
-          <div className="p-4 space-y-4 animate-in fade-in">
-            {/* Hero Video Player */}
-            <div 
-              ref={videoContainerRef} 
-              className={`bg-slate-900 rounded-2xl overflow-hidden shadow-xl ${
-                isFullscreen ? 'fixed inset-0 z-50 rounded-none flex flex-col' : ''
-              }`}
-            >
-              <div className={`relative bg-black ${isFullscreen ? 'flex-1' : 'aspect-video'}`}>
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-contain"
-                  src={(() => {
-                    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v2', '') || 'http://localhost:8000';
-                    const annotatedPath = result.annotated_url || result.annotatedUrl;
-                    
-                    console.log('🎬 Constructing video URL:', {
-                      baseUrl,
-                      annotatedPath,
-                      analysisId,
-                      VITE_API_URL: import.meta.env.VITE_API_URL
-                    });
-                    
-                    // If we have an annotated path from backend, ensure it's a full URL
-                    if (annotatedPath) {
-                      // If it's already a full URL, use it as-is
-                      if (annotatedPath.startsWith('http://') || annotatedPath.startsWith('https://')) {
-                        console.log('✅ Using full URL:', annotatedPath);
-                        return annotatedPath;
-                      }
-                      // Otherwise, prepend the base URL
-                      const fullUrl = `${baseUrl}${annotatedPath}`;
-                      console.log('✅ Constructed URL from relative path:', fullUrl);
-                      return fullUrl;
-                    }
-                    
-                    // Fallback: construct URL from analysisId
-                    const fallbackUrl = `${baseUrl}/api/v2/annotated/${analysisId}_annotated.mp4`;
-                    console.log('⚠️ Using fallback URL:', fallbackUrl);
-                    return fallbackUrl;
-                  })()}
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={handleLoadedMetadata}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  onClick={handlePlayPause}
-                  onError={(e) => {
-                    console.error('Video load error:', e);
-                    console.error('Video src:', videoRef.current?.src);
-                    console.error('Result annotated_url:', result.annotated_url || result.annotatedUrl);
-                    console.error('VITE_API_URL:', import.meta.env.VITE_API_URL);
-                  }}
-                >
-                  Your browser does not support the video tag.
-                </video>
-
-                {/* Play/Pause Overlay */}
-                <div 
-                  className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity pointer-events-none ${
-                    isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'
-                  }`}
-                >
-                  <div className="w-20 h-20 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-2xl">
-                    {isPlaying ? (
-                      <Pause size={40} className="text-slate-900 ml-1" />
-                    ) : (
-                      <Play size={40} className="text-slate-900 ml-1" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Top Controls */}
-                <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-                  {/* Clip Looping Indicator */}
-                  {loopingClip && (
-                    <div className="bg-emerald-500 text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 shadow-lg">
-                      <span className="animate-pulse">●</span>
-                      Looping: {selectedKeyframe}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          stopLooping();
-                        }}
-                        className="ml-1 hover:bg-emerald-600 rounded-full p-1"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                  
-                  {/* Video Controls */}
-                  <div className="flex gap-2 ml-auto">
-                    {/* Mute Toggle */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleMute();
-                      }}
-                      className="bg-slate-800/80 hover:bg-slate-700 text-white p-2 rounded-full transition-colors shadow-lg"
-                      title={isMuted ? 'Unmute' : 'Mute'}
-                    >
-                      {isMuted ? '🔇' : '🔊'}
-                    </button>
-                    
-                    {/* Fullscreen Toggle */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFullscreen();
-                      }}
-                      className="bg-slate-800/80 hover:bg-slate-700 text-white p-2 rounded-full transition-colors shadow-lg"
-                      title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-                    >
-                      {isFullscreen ? (
-                        <Minimize size={20} />
-                      ) : (
-                        <Maximize size={20} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Video Timeline with Keyframe Markers */}
-              <div className={`p-4 bg-slate-800 ${isFullscreen ? 'flex-shrink-0' : ''}`}>
-                {/* Hint for keyframe dots */}
-                {keyframes.length > 0 && (
-                  <div className="flex items-center gap-2 mb-2 text-xs text-slate-400">
-                    <div className="w-2 h-2 rounded-full bg-white border border-slate-900"></div>
-                    <span>Click dots to jump to key moments</span>
-                  </div>
-                )}
-                
-                <div className="relative h-10 mb-2">
-                  {/* Progress Bar */}
-                  <div className="absolute inset-0 bg-slate-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 transition-all"
-                      style={{ width: `${(currentTime / duration) * 100}%` }}
-                    />
-                  </div>
-
-                  {/* Keyframe Markers */}
-                  {keyframes.map((keyframe) => (
-                    <button
-                      key={keyframe.parameterName}
-                      onClick={() => seekToKeyframe(keyframe.timestamp, keyframe.parameterName)}
-                      className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-2 transition-all hover:scale-125 shadow-lg ${
-                        selectedKeyframe === keyframe.parameterName
-                          ? 'bg-emerald-400 border-white scale-125'
-                          : 'bg-white border-slate-900 hover:bg-emerald-300'
-                      }`}
-                      style={{ left: `${(keyframe.timestamp / duration) * 100}%` }}
-                      title={keyframe.label}
-                      aria-label={`Jump to ${keyframe.label}`}
-                    />
-                  ))}
-                </div>
-
-                {/* Time Display */}
-                <div className="flex justify-between text-xs text-slate-400">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Key Moments - New SnapshotGallery Component */}
+          <div className="animate-in fade-in">
+            {/* Instagram-style Full-Screen Swipeable Media */}
             {(() => {
-              // Transform keyframes data into Snapshot format
-              console.log('🖼️ Building SnapshotGallery:');
-              console.log('- Keyframes:', keyframes.length);
-              console.log('- Loaded snapshots:', Object.keys(loadedSnapshots).length);
-              console.log('- videoInfo snapshots:', result.videoInfo?.parameterSnapshots);
-              console.log('- video_info snapshots:', result.video_info?.parameter_snapshots);
+              const clips = result.videoInfo?.parameterClips || result.video_info?.parameter_clips || {};
+              const snapshots = result.videoInfo?.parameterSnapshots || result.video_info?.parameter_snapshots || {};
               
-              const snapshots: Snapshot[] = keyframes.map((keyframe) => {
-                const snapshotUrl = loadedSnapshots[keyframe.parameterName] ||
-                                   result.videoInfo?.parameterSnapshots?.[keyframe.parameterName] ||
-                                   result.video_info?.parameter_snapshots?.[keyframe.parameterName];
-                const paramScore = typeof parameters[keyframe.parameterName] === 'number'
-                  ? parameters[keyframe.parameterName]
-                  : (parameters[keyframe.parameterName] as any)?.score || 0;
-                const paramData = parameters[keyframe.parameterName];
-                
-                console.log(`- Snapshot for ${keyframe.parameterName}:`, snapshotUrl ? '✅' : '❌', snapshotUrl);
-                
-                return {
-                  id: keyframe.parameterName,
-                  url: snapshotUrl ? getFullMediaUrl(snapshotUrl as string) : '',
-                  timestamp: keyframe.timestamp,
-                  parameterName: keyframe.label,
-                  score: paramScore as number,
-                  metrics: paramData?.metrics || [],
-                  phase: paramData?.phase || 'delivery'
-                };
-              });
-
-              console.log('- Final snapshots array:', snapshots.length);
-              console.log('- Snapshots with URLs:', snapshots.filter(s => s.url).length);
-
-              if (snapshots.length === 0) {
+              // Define parameter order for display
+              const parameterOrder = [
+                'back_foot_contact',
+                'braced_front_leg', 
+                'delayed_arms',
+                'hip_shoulder_separation',
+                'chest_drive',
+                'jump_and_gather',
+                'run_up_effectiveness'
+              ];
+              
+              // Build media items (clip + snapshot pairs)
+              const mediaItems = parameterOrder
+                .filter(param => clips[param] || snapshots[param])
+                .map(param => ({
+                  paramName: param,
+                  clipUrl: clips[param] as string,
+                  snapshotUrl: snapshots[param] as string,
+                  score: typeof parameters[param] === 'number' 
+                    ? parameters[param] 
+                    : (parameters[param] as any)?.score || 0,
+                  displayName: param.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                }));
+              
+              if (mediaItems.length === 0) {
                 return (
-                  <div className="mb-6">
-                    <h3 className="font-bold text-slate-800 mb-3">Key Moments</h3>
-                    <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-8 text-center">
-                      <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <TrendingUp size={24} className="text-slate-400" />
+                  <div className="h-[70vh] flex items-center justify-center bg-slate-900 rounded-2xl m-4">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Play size={32} className="text-slate-500" />
                       </div>
-                      <p className="text-sm text-slate-600 font-medium">No Key Moments Available</p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Snapshot extraction is in progress. Check back soon!
-                      </p>
+                      <h4 className="font-bold text-white mb-2">Processing Media</h4>
+                      <p className="text-sm text-slate-400">Your clips are being generated...</p>
                     </div>
                   </div>
                 );
               }
-
-              return (
-                <div className="mb-6">
-                  <SnapshotGallery
-                    snapshots={snapshots}
-                    onSnapshotClick={(snapshot) => {
-                      setSelectedSnapshot(snapshot);
-                      setIsLightboxOpen(true);
-                    }}
-                    onClipOpen={(snapshot) => {
-                      // Open video at the specific keyframe timestamp
-                      seekToKeyframe(snapshot.timestamp, snapshot.id);
-                    }}
-                  />
-                  
-                  {/* Lightbox for full-screen snapshot viewing */}
-                  {selectedSnapshot && (
-                    <SnapshotLightbox
-                      snapshot={selectedSnapshot}
-                      isOpen={isLightboxOpen}
-                      onClose={() => {
-                        setIsLightboxOpen(false);
-                        setSelectedSnapshot(null);
-                      }}
-                      onShare={async (snapshot) => {
-                        if (navigator.share) {
-                          try {
-                            await navigator.share({
-                              title: `${snapshot.parameterName} - Score: ${snapshot.score}`,
-                              text: `Check out my ${snapshot.parameterName} analysis!`,
-                              url: window.location.href
-                            });
-                          } catch (err) {
-                            console.log('Share cancelled or failed:', err);
-                          }
-                        }
-                      }}
-                      onDownload={(snapshot) => {
-                        // Create download link
-                        const link = document.createElement('a');
-                        link.href = snapshot.url;
-                        link.download = `${snapshot.parameterName}_${snapshot.score}.jpg`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                      }}
-                    />
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Parameter Clips Grid with New VideoPlayerModal */}
-            {(() => {
-              const clips = result.videoInfo?.parameterClips || result.video_info?.parameter_clips || {};
-              const clipEntries = Object.entries(clips);
               
-              if (clipEntries.length === 0) return null;
-
-              // Transform clips into VideoClip format
-              const videoClips: VideoClip[] = clipEntries.map(([paramName, clipUrl]) => {
-                const paramScore = typeof parameters[paramName] === 'number'
-                  ? parameters[paramName]
-                  : (parameters[paramName] as any)?.score || 0;
-                const paramData = parameters[paramName];
-                const displayName = paramName
-                  .split('_')
-                  .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-                  .join(' ');
-                
-                // Get snapshot for this parameter
-                const snapshotUrl = loadedSnapshots[paramName] ||
-                                   result.videoInfo?.parameterSnapshots?.[paramName] ||
-                                   result.video_info?.parameter_snapshots?.[paramName];
-                
-                return {
-                  id: paramName,
-                  url: getFullMediaUrl(clipUrl as string),
-                  snapshot: snapshotUrl ? getFullMediaUrl(snapshotUrl as string) : undefined,
-                  duration: 0, // Will be set when video loads
-                  parameterName: displayName,
-                  score: paramScore as number,
-                  phase: paramData?.phase || 'delivery',
-                  metrics: paramData?.metrics || []
-                };
-              });
-
+              const currentItem = mediaItems[featuredClipIndex] || mediaItems[0];
+              const safeIndex = Math.min(featuredClipIndex, mediaItems.length - 1);
+              
               return (
-                <div className="mb-6">
-                  <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    Individual Parameter Clips
-                    <Badge variant="primary" size="sm">{videoClips.length}</Badge>
-                  </h3>
-                  
-                  {/* Grid of Clip Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {videoClips.map((clip) => (
-                      <button
-                        key={clip.id}
-                        onClick={() => {
-                          setSelectedVideoClip(clip);
-                          setIsVideoModalOpen(true);
-                        }}
-                        className="group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all hover:scale-105"
-                      >
-                        {/* Thumbnail */}
-                        <div className="relative aspect-video bg-slate-900">
-                          {clip.snapshot ? (
-                            <img
-                              src={clip.snapshot}
-                              alt={clip.parameterName}
+                <div className="relative">
+                  {/* Main Media Display - Instagram Reels Style */}
+                  <div className="relative bg-black" style={{ height: 'calc(100vh - 180px)', minHeight: '500px' }}>
+                    {/* Video Player - No overlays needed, backend adds all annotations */}
+                    {currentItem.clipUrl && (
+                      <video
+                        key={currentItem.clipUrl}
+                        className="w-full h-full object-contain"
+                        src={getFullMediaUrl(currentItem.clipUrl)}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                      />
+                    )}
+                    
+                    {/* Right Side Actions - Minimal */}
+                    <div className="absolute right-3 bottom-24 flex flex-col items-center gap-4">
+                      {/* Snapshot Preview */}
+                      {currentItem.snapshotUrl && (
+                        <button 
+                          onClick={() => {
+                            const snapshot: Snapshot = {
+                              id: currentItem.paramName,
+                              url: getFullMediaUrl(currentItem.snapshotUrl),
+                              timestamp: 0,
+                              parameterName: currentItem.displayName,
+                              score: currentItem.score as number,
+                              metrics: [],
+                              phase: 'delivery'
+                            };
+                            setSelectedSnapshot(snapshot);
+                            setIsLightboxOpen(true);
+                          }}
+                          className="flex flex-col items-center opacity-70 hover:opacity-100 transition-opacity"
+                        >
+                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/40 shadow-lg">
+                            <img 
+                              src={getFullMediaUrl(currentItem.snapshotUrl)} 
+                              alt="Snapshot" 
                               className="w-full h-full object-cover"
                             />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-500">
-                              <Play size={32} />
-                            </div>
-                          )}
-                          
-                          {/* Play Overlay */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-3">
-                              <Play size={24} className="text-slate-900" />
-                            </div>
                           </div>
-                          
-                          {/* Score Badge */}
-                          <div className="absolute top-2 right-2">
-                            <Badge
-                              variant={clip.score >= 80 ? 'success' : clip.score >= 60 ? 'warning' : 'danger'}
-                              size="sm"
-                              className="text-xs font-bold"
-                            >
-                              {Math.round(clip.score)}
-                            </Badge>
-                          </div>
+                          <span className="text-white/70 text-[10px] mt-1">Photo</span>
+                        </button>
+                      )}
+                      
+                      {/* Share Button */}
+                      <button 
+                        onClick={async () => {
+                          if (navigator.share) {
+                            try {
+                              await navigator.share({
+                                title: `${currentItem.displayName} - Score: ${Math.round(currentItem.score)}`,
+                                text: `Check out my bowling analysis!`,
+                                url: window.location.href
+                              });
+                            } catch (err) {
+                              console.log('Share cancelled');
+                            }
+                          }
+                        }}
+                        className="flex flex-col items-center opacity-70 hover:opacity-100 transition-opacity"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                          <Share2 size={18} className="text-white/90" />
                         </div>
-                        
-                        {/* Clip Info */}
-                        <div className="p-3 bg-white">
-                          <p className="text-sm font-semibold text-slate-800 truncate">
-                            {clip.parameterName}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5 capitalize">
-                            {clip.phase} phase
-                          </p>
-                        </div>
+                        <span className="text-white/70 text-[10px] mt-1">Share</span>
                       </button>
-                    ))}
+                    </div>
+                    
+                    {/* Swipe Navigation Arrows */}
+                    {safeIndex > 0 && (
+                      <button 
+                        onClick={() => setFeaturedClipIndex(safeIndex - 1)}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center"
+                      >
+                        <ArrowLeft size={20} className="text-white" />
+                      </button>
+                    )}
+                    {safeIndex < mediaItems.length - 1 && (
+                      <button 
+                        onClick={() => setFeaturedClipIndex(safeIndex + 1)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center rotate-180"
+                      >
+                        <ArrowLeft size={20} className="text-white" />
+                      </button>
+                    )}
                   </div>
                   
-                  {/* Video Player Modal */}
-                  {selectedVideoClip && (
-                    <VideoPlayerModal
-                      clip={selectedVideoClip}
-                      isOpen={isVideoModalOpen}
-                      onClose={() => {
-                        setIsVideoModalOpen(false);
-                        setSelectedVideoClip(null);
-                      }}
-                      autoplay={true}
-                      showMetrics={true}
-                    />
-                  )}
+                  {/* Bottom Dot Navigation */}
+                  <div className="bg-slate-900 py-3 px-4">
+                    <div className="flex justify-center gap-2 mb-3">
+                      {mediaItems.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setFeaturedClipIndex(index)}
+                          className={`transition-all rounded-full ${
+                            index === safeIndex 
+                              ? 'w-6 h-2 bg-emerald-500' 
+                              : 'w-2 h-2 bg-slate-600 hover:bg-slate-500'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-center text-slate-400 text-xs">
+                      {safeIndex + 1} of {mediaItems.length} • Swipe or tap arrows to navigate
+                    </p>
+                  </div>
                 </div>
               );
             })()}
 
-            {/* Split-Screen Comparison CTA */}
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setTab('frames')}>
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                  VS
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-slate-900 mb-1">View Split-Screen Comparison</h4>
-                  <p className="text-sm text-slate-600 mb-3">
-                    Compare your technique against ideal standards with side-by-side overlays showing angle measurements.
-                  </p>
-                  <Button variant="primary" size="sm" onClick={(e) => {
-                    e.stopPropagation();
-                    setTab('feedback');
-                  }}>
-                    View Detailed Feedback →
-                  </Button>
-                </div>
-              </div>
-            </div>
+            {/* Lightbox for full-screen snapshot viewing */}
+            {selectedSnapshot && (
+              <SnapshotLightbox
+                snapshot={selectedSnapshot}
+                isOpen={isLightboxOpen}
+                onClose={() => {
+                  setIsLightboxOpen(false);
+                  setSelectedSnapshot(null);
+                }}
+                onShare={async (snapshot) => {
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: `${snapshot.parameterName} - Score: ${Math.round(snapshot.score)}`,
+                        text: `Check out my ${snapshot.parameterName} analysis!`,
+                        url: window.location.href
+                      });
+                    } catch (err) {
+                      console.log('Share cancelled or failed:', err);
+                    }
+                  }
+                }}
+                onDownload={(snapshot) => {
+                  const link = document.createElement('a');
+                  link.href = snapshot.url;
+                  link.download = `${snapshot.parameterName}_${Math.round(snapshot.score)}.jpg`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              />
+            )}
           </div>
         )}
 
