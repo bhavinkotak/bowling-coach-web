@@ -303,8 +303,13 @@ export default function HomePage() {
                 console.log('🔍 Checking analysis type for:', analysisId);
                 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api/v2', '') || 'http://localhost:8000';
                 
+                // Headers to skip ngrok browser warning
+                const headers = {
+                  'ngrok-skip-browser-warning': 'true',
+                };
+                
                 // Try multi-video endpoint first
-                const multiResponse = await fetch(`${API_BASE}/api/v2/multi-analysis/${analysisId}`);
+                const multiResponse = await fetch(`${API_BASE}/api/v2/multi-analysis/${analysisId}`, { headers });
                 console.log('📡 Multi-video response status:', multiResponse.status);
                 
                 if (multiResponse.ok) {
@@ -337,7 +342,7 @@ export default function HomePage() {
                 
                 // If multi-video check failed, try single-video endpoint
                 console.log('📡 Checking single-video endpoint...');
-                const singleResponse = await fetch(`${API_BASE}/api/v2/analysis/${analysisId}`);
+                const singleResponse = await fetch(`${API_BASE}/api/v2/analysis/${analysisId}`, { headers });
                 console.log('📡 Single-video response status:', singleResponse.status);
                 
                 if (singleResponse.ok) {

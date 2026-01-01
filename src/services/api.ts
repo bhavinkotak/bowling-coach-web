@@ -14,6 +14,7 @@ const apiClient: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v2',
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true', // Skip ngrok browser warning for API calls
   },
   timeout: 300000, // 5 minutes for video uploads
 });
@@ -22,6 +23,11 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('authToken');
+    
+    // Always add ngrok header to skip browser warning
+    if (config.headers) {
+      config.headers['ngrok-skip-browser-warning'] = 'true';
+    }
     
     if (token && config.headers) {
       // Check if it's a guest token

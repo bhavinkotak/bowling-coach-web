@@ -34,6 +34,7 @@ class UserService {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
     });
     return response.data;
@@ -62,6 +63,7 @@ class UserService {
       {
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       }
     );

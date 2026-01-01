@@ -286,7 +286,9 @@ class AnalysisService {
     // Use axios directly with full URL to avoid baseURL issues
     const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v2').replace('/api/v2', '/api');
     const token = localStorage.getItem('authToken');
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+      'ngrok-skip-browser-warning': 'true',
+    };
     
     if (token?.startsWith('guest_token_')) {
       const deviceId = localStorage.getItem('device_id');
@@ -479,7 +481,9 @@ class AnalysisService {
     // Use axios directly to call the /api endpoint (not /api/v2)
     const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v2').replace('/api/v2', '/api');
     const token = localStorage.getItem('authToken');
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+      'ngrok-skip-browser-warning': 'true',
+    };
     
     if (token?.startsWith('guest_token_')) {
       const deviceId = localStorage.getItem('device_id');
