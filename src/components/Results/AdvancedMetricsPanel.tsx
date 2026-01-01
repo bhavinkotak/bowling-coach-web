@@ -30,6 +30,7 @@ interface AdvancedMetrics {
   };
   shoulder_angle_at_release?: {
     shoulder_angle: number;
+    classification?: string;
     performance_indicator: boolean;
     interpretation?: string;
   };
@@ -37,6 +38,7 @@ interface AdvancedMetrics {
     peak_velocity: number;
     average_velocity: number;
     classification: string;
+    interpretation?: string;
   };
   error?: string;
 }
@@ -58,6 +60,7 @@ const classificationColors: Record<string, string> = {
   elite: 'text-purple-400',
   professional: 'text-blue-400',
   excellent: 'text-green-400',
+  optimal: 'text-green-400',
   good: 'text-green-500',
   acceptable: 'text-yellow-400',
   average: 'text-yellow-500',
@@ -72,6 +75,7 @@ const classificationBadgeColors: Record<string, string> = {
   elite: 'bg-purple-500/20 border-purple-500',
   professional: 'bg-blue-500/20 border-blue-500',
   excellent: 'bg-green-500/20 border-green-500',
+  optimal: 'bg-green-500/20 border-green-500',
   good: 'bg-green-500/20 border-green-500',
   acceptable: 'bg-yellow-500/20 border-yellow-500',
   average: 'bg-yellow-500/20 border-yellow-500',
@@ -242,9 +246,10 @@ export default function AdvancedMetricsPanel({
               <MetricCard
                 icon={<Target className="w-5 h-5 text-blue-400" />}
                 title="Shoulder Angle"
-                subtitle="At Ball Release"
+                subtitle="Arm-Trunk Separation"
                 mainValue={`${shoulder_angle_at_release.shoulder_angle}°`}
                 mainLabel="Angle at Release"
+                classification={shoulder_angle_at_release.classification}
                 note={shoulder_angle_at_release.interpretation}
               />
             )}
@@ -256,9 +261,10 @@ export default function AdvancedMetricsPanel({
                 title="Wrist Whip"
                 subtitle="Velocity During Delivery"
                 mainValue={wrist_whip_velocity.peak_velocity.toFixed(2)}
-                mainLabel="Peak Velocity (normalized)"
+                mainLabel="Peak Velocity"
                 secondaryValue={`${wrist_whip_velocity.average_velocity.toFixed(2)} avg`}
                 classification={wrist_whip_velocity.classification}
+                note={wrist_whip_velocity.interpretation}
               />
             )}
           </div>
