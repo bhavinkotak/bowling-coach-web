@@ -1,4 +1,3 @@
-import apiClient from './api';
 import axios from 'axios';
 import type { User, BowlingStyle, BowlingArm } from '../types';
 
@@ -28,9 +27,13 @@ class UserService {
    */
   async getProfile(token: string): Promise<UserProfile> {
     // Use axios directly to avoid base URL issue (endpoint is /api/user/profile not /api/v2/user/profile)
-    const response = await apiClient.get<UserProfile>('/user/profile'.replace('/api/v2', '/api'), {
+    const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v2';
+    const backendURL = baseURL.replace('/api/v2', '');
+    
+    const response = await axios.get<UserProfile>(`${backendURL}/api/user/profile`, {
       headers: {
         Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
     });
     return response.data;

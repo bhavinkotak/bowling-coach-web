@@ -2,6 +2,13 @@ import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 
+// Extend AxiosRequestConfig to include skipErrorToast
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    skipErrorToast?: boolean;
+  }
+}
+
 // Create axios instance with base configuration
 const apiClient: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v2',
@@ -43,6 +50,11 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
+    // Check if error toast should be skipped
+    if (error.config?.skipErrorToast) {
+      return Promise.reject(error);
+    }
+
     // Handle different error types
     if (error.response) {
       const status = error.response.status;

@@ -30,6 +30,24 @@ export interface AuthResponse {
   message?: string;
 }
 
+// Social Login Types
+export type SocialProvider = 'google' | 'facebook' | 'twitter' | 'apple';
+
+export interface SocialLoginPayload {
+  provider: SocialProvider;
+  accessToken: string;
+  email?: string;
+  name?: string;
+  profilePicture?: string;
+  codeVerifier?: string; // For Twitter PKCE flow
+}
+
+export interface OAuthCallbackData {
+  provider: SocialProvider;
+  code: string;
+  codeVerifier?: string;
+}
+
 export interface ParameterFeedback {
   issues: string[];
   strengths: string[];

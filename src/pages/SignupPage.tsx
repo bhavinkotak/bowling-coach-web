@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Activity, Mail, Smartphone, ArrowLeft, User, Lock } from 'lucide-react';
+import { Activity, Mail, ArrowLeft, User, Lock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-hot-toast';
 import { validateEmail, validatePassword } from '../utils/validators';
 import { Button, Input } from '../components/Common';
+import { 
+  GoogleLoginButton, 
+  FacebookLoginButton, 
+  TwitterLoginButton,
+  AppleLoginButton 
+} from '../components/Auth';
+import type { SocialProvider, AuthResponse } from '../types';
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, socialLogin, handleLoginSuccess } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -18,6 +25,31 @@ export default function SignupPage() {
     password: '',
     confirmPassword: '',
   });
+
+  const handleSocialLogin = async (provider: SocialProvider, data: string | AuthResponse) => {
+    try {
+      setIsLoading(true);
+      
+      if (typeof data === 'object' && 'token' in data) {
+        await handleLoginSuccess(data as AuthResponse);
+      } else {
+        await socialLogin(provider, data as string);
+      }
+
+      toast.success(`Welcome! Account created with ${provider.charAt(0).toUpperCase() + provider.slice(1)}`);
+      navigate('/');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(err.response?.data?.message || `${provider} signup failed. Please try again.`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSocialError = (error: Error) => {
+    console.error('Social signup error:', error);
+    toast.error(error.message || 'Social signup failed. Please try again.');
+  };
 
   const handleEmailSignup = async (e: FormEvent) => {
     e.preventDefault();
@@ -201,35 +233,35 @@ export default function SignupPage() {
         </div>
 
         <div className="space-y-3">
-          <Button
-            variant="outline"
-            size="lg"
-            fullWidth
-            onClick={() => toast('Google sign-up coming soon!', { icon: '🔐' })}
-            leftIcon={
-              <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white">
-                G
-              </div>
-            }
-            className="bg-white text-slate-900 hover:bg-slate-100 border-white shadow-lg"
-          >
-            Sign up with Google
-          </Button>
+          {/* Google Signup */}
+          <div className="google-login-wrapper">
+            <GoogleLoginButton
+              onSuccess={(credential) => handleSocialLogin('google', credential)}
+              onError={handleSocialError}
+              text="signup"
+            />
+          </div>
 
-          <Button
-            variant="outline"
-            size="lg"
-            fullWidth
-            onClick={() => toast('Apple sign-up coming soon!', { icon: '🍎' })}
-            leftIcon={
-              <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
-                <Smartphone size={12} className="text-black" fill="black" />
-              </div>
-            }
-            className="bg-slate-800 hover:bg-slate-700"
-          >
-            Sign up with Apple
-          </Button>
+          {/* Facebook Signup */}
+          <FacebookLoginButton
+            onSuccess={(token) => handleSocialLogin('facebook', token)}
+            onError={handleSocialError}
+            text="Sign up with Facebook"
+          />
+
+          {/* Apple Signup */}
+          <AppleLoginButton
+            onSuccess={(token) => handleSocialLogin('apple', token)}
+            onError={handleSocialError}
+            text="Sign up with Apple"
+          />
+
+          {/* Twitter Signup */}
+          <TwitterLoginButton
+            onSuccess={(token) => handleSocialLogin('twitter', token)}
+            onError={handleSocialError}
+            text="Sign up with X (Twitter)"
+          />
 
           <div className="flex items-center gap-4 py-2">
             <div className="h-px bg-slate-800 flex-1" />

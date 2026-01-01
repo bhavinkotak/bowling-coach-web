@@ -102,8 +102,8 @@ export default function ProfilePage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-slate-900 py-8 px-4 pt-safe-top pb-safe-bottom">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-full bg-slate-900 py-8 px-4 pt-safe-top pb-safe-bottom overflow-y-auto">
+        <div className="max-w-4xl mx-auto pb-8">
           {/* Back Button */}
           <Button
             variant="outline"
@@ -168,11 +168,18 @@ export default function ProfilePage() {
                   <p className="text-sm text-slate-400 mb-1">Member Since</p>
                   <p className="text-white font-medium">
                     {user.createdAt 
-                      ? new Date(user.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })
+                      ? (() => {
+                          // Ensure the date string is treated as UTC if it doesn't have timezone info
+                          const dateStr = user.createdAt;
+                          const date = dateStr.endsWith('Z') || dateStr.includes('+') || dateStr.includes('-', 10)
+                            ? new Date(dateStr)
+                            : new Date(dateStr + 'Z'); // Append Z to treat as UTC
+                          return date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          });
+                        })()
                       : 'Recently joined'}
                   </p>
                 </div>

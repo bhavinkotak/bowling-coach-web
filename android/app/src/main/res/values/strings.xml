@@ -4,4 +4,5 @@
     <string name="title_activity_main">Bowling Coach Web</string>
     <string name="package_name">com.bowlingcoach.webapp</string>
     <string name="custom_url_scheme">com.bowlingcoach.webapp</string>
+    <string name="server_client_id">720154297734-0kf9b1ngo6v35qs86rhnaf2ojncr0c9m.apps.googleusercontent.com</string>
 </resources>

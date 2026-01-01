@@ -147,8 +147,20 @@ export default function HomePage() {
       }
       
     } catch (error: any) {
-      console.error('Failed to delete analysis:', error);
-      toast.error(error.response?.data?.detail || 'Failed to delete analysis');
+      console.error('Failed to delete analysis:', JSON.stringify(error, null, 2));
+      console.error('Error details:', JSON.stringify({
+        message: error?.message,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        config: {
+          url: error?.config?.url,
+          method: error?.config?.method,
+          baseURL: error?.config?.baseURL,
+        }
+      }, null, 2));
+      const errorMsg = error?.response?.data?.detail || error?.message || 'Failed to delete analysis';
+      toast.error(errorMsg);
     } finally {
       setDeletingId(null);
     }
@@ -245,7 +257,7 @@ export default function HomePage() {
           </div>
         ) : (
           recentAnalyses.map((analysis) => {
-            const score = Math.round(analysis.overallScore || analysis.overall_score || 0);
+            const score = Number((analysis.overallScore || analysis.overall_score || 0).toFixed(1));
             const analysisId = analysis.analysisId || analysis.analysis_id || '';
             const sequenceNumber = analysis.sequenceNumber || analysis.sequence_number;
             

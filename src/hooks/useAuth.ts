@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import AuthService from '../services/auth';
+// Import social auth service
+import socialAuthService from '../services/social-auth';
 import userService from '../services/user';
+import type { SocialProvider, AuthResponse } from '../types';
 
 export function useAuth() {
   const { user, token, setUser, setToken, updateUser, logout: storeLogout } = useAuthStore();
@@ -143,6 +146,55 @@ export function useAuth() {
     navigate('/login');
   };
 
+  const socialLogin = async (provider: SocialProvider, accessToken: string) => {
+    const response = await socialAuthService.exchangeToken({
+      provider,
+      accessToken,
+    });
+    
+    setToken(response.token);
+    setUser(response.user);
+    
+    // Fetch full profile from backend to get bowling parameters
+    try {
+      const profile = await userService.getProfile(response.token);
+      const syncedUser = userService.profileToUser(profile);
+      
+      // Update with backend bowling parameters
+      if (syncedUser.bowlingStyle && syncedUser.bowlingArm) {
+        updateUser({
+          bowlingStyle: syncedUser.bowlingStyle,
+          bowlingArm: syncedUser.bowlingArm,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+    }
+  };
+
+  const handleLoginSuccess = async (response: AuthResponse) => {
+    setToken(response.token);
+    setUser(response.user);
+    
+    // Fetch full profile from backend to get bowling parameters
+    try {
+      const profile = await userService.getProfile(response.token);
+      const syncedUser = userService.profileToUser(profile);
+      
+      // Update with backend bowling parameters
+      if (syncedUser.bowlingStyle && syncedUser.bowlingArm) {
+        updateUser({
+          bowlingStyle: syncedUser.bowlingStyle,
+          bowlingArm: syncedUser.bowlingArm,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+    }
+  };
+
+
+
   const isAuthenticated = !!user && !!token;
 
   return {
@@ -153,6 +205,8 @@ export function useAuth() {
     signup,
     logout,
     loginAsGuest,
+    socialLogin,
+    handleLoginSuccess,
     updateUser,
   };
 }

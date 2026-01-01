@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import HomePage from './pages/HomePage';
 import UnifiedUploadPage from './pages/UnifiedUploadPage';
 import ProcessingPage from './pages/ProcessingPage';
@@ -20,6 +21,9 @@ function App() {
       {/* Public Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      
+      {/* OAuth Callback Routes */}
+      <Route path="/auth/:provider/callback" element={<OAuthCallbackPage />} />
 
       {/* Protected Routes */}
       <Route

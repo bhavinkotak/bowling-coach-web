@@ -56,5 +56,28 @@
 	<string>We need access to your camera to record bowling videos for analysis.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to your microphone to record audio with your bowling videos.</string>
+	<key>GIDClientID</key>
+	<string>720154297734-scito8tjgo8h352hn0kjnn64mfr73s74.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.bowlingcoach.webapp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.bowlingcoach.webapp</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- TODO: Replace this with the REVERSED_CLIENT_ID from your Google Cloud Console iOS Credential -->
+				<!-- It looks like: com.googleusercontent.apps.YOUR-CLIENT-ID -->
+				<string>com.googleusercontent.apps.720154297734-scito8tjgo8h352hn0kjnn64mfr73s74</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
