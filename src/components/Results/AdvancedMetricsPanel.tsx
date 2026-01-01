@@ -29,6 +29,13 @@ interface AdvancedMetrics {
     icc_limit: number;
     confidence: string;
     camera_angle_quality?: string;
+    angle_at_arm_horizontal?: number | null;
+    angle_at_release?: number | null;
+    _debug_frames?: {
+      arm_horizontal_frame: number;
+      release_frame: number;
+      back_foot_frame: number;
+    };
   };
   shoulder_angle_at_release?: {
     shoulder_angle: number;
@@ -221,30 +228,71 @@ export default function AdvancedMetricsPanel({
 
             {/* Bowling Legality */}
             {bowling_legality && (
-              <MetricCard
-                icon={
-                  bowling_legality.is_legal === true ? (
-                    <CheckCircle className="w-5 h-5 text-green-400" />
-                  ) : bowling_legality.is_legal === false ? (
-                    <XCircle className="w-5 h-5 text-red-400" />
-                  ) : (
-                    <AlertTriangle className="w-5 h-5 text-yellow-400" />
-                  )
-                }
-                title="Bowling Legality"
-                subtitle="ICC 15° Elbow Extension Rule"
-                mainValue={
-                  bowling_legality.extension_degrees !== null 
-                    ? `${bowling_legality.extension_degrees}°` 
-                    : 'N/A'
-                }
-                mainLabel={`Extension (limit: ${bowling_legality.icc_limit}°)`}
-                secondaryValue={bowling_legality.is_legal ? '✅ Legal' : bowling_legality.is_legal === false ? '❌ Illegal' : 'Unknown'}
-                classification={bowling_legality.classification}
-                note={bowling_legality.feedback}
-                confidence={bowling_legality.confidence}
-                cameraAngleQuality={bowling_legality.camera_angle_quality}
-              />
+              <div className="space-y-2">
+                <MetricCard
+                  icon={
+                    bowling_legality.is_legal === true ? (
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                    ) : bowling_legality.is_legal === false ? (
+                      <XCircle className="w-5 h-5 text-red-400" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                    )
+                  }
+                  title="Bowling Legality"
+                  subtitle="ICC 15° Elbow Extension Rule"
+                  mainValue={
+                    bowling_legality.extension_degrees !== null 
+                      ? `${bowling_legality.extension_degrees}°` 
+                      : 'N/A'
+                  }
+                  mainLabel={`Extension (limit: ${bowling_legality.icc_limit}°)`}
+                  secondaryValue={bowling_legality.is_legal ? '✅ Legal' : bowling_legality.is_legal === false ? '❌ Illegal' : 'Unknown'}
+                  classification={bowling_legality.classification}
+                  note={bowling_legality.feedback}
+                  confidence={bowling_legality.confidence}
+                  cameraAngleQuality={bowling_legality.camera_angle_quality}
+                />
+                {/* Debug Info: Angle measurements */}
+                {(bowling_legality.angle_at_arm_horizontal !== undefined || bowling_legality._debug_frames) && (
+                  <div className="bg-slate-950/80 rounded-lg p-3 border border-slate-700">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Info className="w-4 h-4 text-cyan-400" />
+                      <span className="text-xs font-medium text-cyan-400">Debug: Angle Measurements</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {bowling_legality.angle_at_arm_horizontal !== null && bowling_legality.angle_at_arm_horizontal !== undefined && (
+                        <div className="bg-slate-800/50 rounded p-2">
+                          <div className="text-slate-400">@ Arm Horizontal</div>
+                          <div className="text-white font-mono text-lg">{bowling_legality.angle_at_arm_horizontal.toFixed(1)}°</div>
+                          {bowling_legality._debug_frames && (
+                            <div className="text-slate-500 text-[10px]">Frame #{bowling_legality._debug_frames.arm_horizontal_frame}</div>
+                          )}
+                        </div>
+                      )}
+                      {bowling_legality.angle_at_release !== null && bowling_legality.angle_at_release !== undefined && (
+                        <div className="bg-slate-800/50 rounded p-2">
+                          <div className="text-slate-400">@ Ball Release</div>
+                          <div className="text-white font-mono text-lg">{bowling_legality.angle_at_release.toFixed(1)}°</div>
+                          {bowling_legality._debug_frames && (
+                            <div className="text-slate-500 text-[10px]">Frame #{bowling_legality._debug_frames.release_frame}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {bowling_legality.angle_at_arm_horizontal != null && bowling_legality.angle_at_release != null && (
+                      <div className="mt-2 pt-2 border-t border-slate-700 text-xs text-slate-400">
+                        <span className="font-mono">
+                          Extension = {bowling_legality.angle_at_release!.toFixed(1)}° - {bowling_legality.angle_at_arm_horizontal!.toFixed(1)}° = {(bowling_legality.angle_at_release! - bowling_legality.angle_at_arm_horizontal!).toFixed(1)}°
+                        </span>
+                        {(bowling_legality.angle_at_release! - bowling_legality.angle_at_arm_horizontal!) < 0 && (
+                          <span className="ml-2 text-yellow-400">(flexion, clamped to 0)</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Shoulder Angle at Release */}
