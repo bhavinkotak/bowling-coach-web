@@ -126,6 +126,80 @@ export interface AnalysisResult {
     quality_score?: number;
   };
   
+  // Advanced Metrics (Premium Feature)
+  advancedMetrics?: {
+    arm_circumduction_speed?: {
+      peak_angular_velocity: number;
+      average_angular_velocity: number;
+      classification: string;
+      adjusted_for_slow_motion?: boolean;
+    };
+    bowling_legality?: {
+      is_legal: boolean | null;
+      extension_degrees: number | null;
+      classification: string;
+      feedback?: string;
+      icc_limit: number;
+      confidence: string;
+    };
+    shoulder_angle_at_release?: {
+      shoulder_angle: number;
+      performance_indicator: boolean;
+      interpretation?: string;
+    };
+    wrist_whip_velocity?: {
+      peak_velocity: number;
+      average_velocity: number;
+      classification: string;
+    };
+    error?: string;
+  };
+  advanced_metrics?: {
+    arm_circumduction_speed?: {
+      peak_angular_velocity: number;
+      average_angular_velocity: number;
+      classification: string;
+      adjusted_for_slow_motion?: boolean;
+    };
+    bowling_legality?: {
+      is_legal: boolean | null;
+      extension_degrees: number | null;
+      classification: string;
+      feedback?: string;
+      icc_limit: number;
+      confidence: string;
+    };
+    shoulder_angle_at_release?: {
+      shoulder_angle: number;
+      performance_indicator: boolean;
+      interpretation?: string;
+    };
+    wrist_whip_velocity?: {
+      peak_velocity: number;
+      average_velocity: number;
+      classification: string;
+    };
+    error?: string;
+  };
+  
+  // Quality Gates (Bowling Legality)
+  qualityGates?: {
+    bowling_action_legal?: boolean;
+    elbow_extension_warning?: boolean;
+    arm_speed_adequate?: boolean;
+    wrist_whip_effective?: boolean;
+  };
+  quality_gates?: {
+    bowling_action_legal?: boolean;
+    elbow_extension_warning?: boolean;
+    arm_speed_adequate?: boolean;
+    wrist_whip_effective?: boolean;
+  };
+  
+  // Feature flag for advanced metrics visibility
+  advancedMetricsEnabled?: boolean;
+  advanced_metrics_enabled?: boolean;
+  
   error?: string;
   message?: string;
 }

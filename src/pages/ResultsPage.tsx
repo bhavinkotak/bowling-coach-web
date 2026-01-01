@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Share2, AlertCircle, TrendingUp, Play } from 'lucide-react';
 import { useResultsStore } from '../stores/resultsStore';
-import { ParameterCard } from '../components/Results';
+import { ParameterCard, AdvancedMetricsPanel } from '../components/Results';
 import { LoadingSpinner, Button, Badge } from '../components/Common';
 import { SnapshotLightbox } from '../components/Gallery';
 import AnalysisService from '../services/analysis';
@@ -279,6 +279,13 @@ export default function ResultsPage() {
                 </div>
               )}
             </div>
+
+            {/* Advanced Metrics (Premium Feature) */}
+            <AdvancedMetricsPanel
+              advancedMetrics={result.advancedMetrics || result.advanced_metrics}
+              qualityGates={result.qualityGates || result.quality_gates}
+              isEnabled={result.advancedMetricsEnabled ?? result.advanced_metrics_enabled ?? true}
+            />
 
             {/* CTA */}
             <div className="mt-8">
