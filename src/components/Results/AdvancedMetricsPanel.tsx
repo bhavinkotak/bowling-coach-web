@@ -19,6 +19,7 @@ interface AdvancedMetrics {
     average_angular_velocity: number;
     classification: string;
     adjusted_for_slow_motion?: boolean;
+    camera_angle_quality?: string;
   };
   bowling_legality?: {
     is_legal: boolean | null;
@@ -27,18 +28,21 @@ interface AdvancedMetrics {
     feedback?: string;
     icc_limit: number;
     confidence: string;
+    camera_angle_quality?: string;
   };
   shoulder_angle_at_release?: {
     shoulder_angle: number;
     classification?: string;
     performance_indicator: boolean;
     interpretation?: string;
+    camera_angle_quality?: string;
   };
   wrist_whip_velocity?: {
     peak_velocity: number;
     average_velocity: number;
     classification: string;
     interpretation?: string;
+    camera_angle_quality?: string;
   };
   error?: string;
 }
@@ -211,6 +215,7 @@ export default function AdvancedMetricsPanel({
                 secondaryValue={`${arm_circumduction_speed.average_angular_velocity.toFixed(0)}°/s avg`}
                 classification={arm_circumduction_speed.classification}
                 note={arm_circumduction_speed.adjusted_for_slow_motion ? 'Adjusted for slow motion' : undefined}
+                cameraAngleQuality={arm_circumduction_speed.camera_angle_quality}
               />
             )}
 
@@ -238,6 +243,7 @@ export default function AdvancedMetricsPanel({
                 classification={bowling_legality.classification}
                 note={bowling_legality.feedback}
                 confidence={bowling_legality.confidence}
+                cameraAngleQuality={bowling_legality.camera_angle_quality}
               />
             )}
 
@@ -251,6 +257,7 @@ export default function AdvancedMetricsPanel({
                 mainLabel="Angle at Release"
                 classification={shoulder_angle_at_release.classification}
                 note={shoulder_angle_at_release.interpretation}
+                cameraAngleQuality={shoulder_angle_at_release.camera_angle_quality}
               />
             )}
 
@@ -265,18 +272,19 @@ export default function AdvancedMetricsPanel({
                 secondaryValue={`${wrist_whip_velocity.average_velocity.toFixed(2)} avg`}
                 classification={wrist_whip_velocity.classification}
                 note={wrist_whip_velocity.interpretation}
+                cameraAngleQuality={wrist_whip_velocity.camera_angle_quality}
               />
             )}
           </div>
 
           {/* Benchmark Info */}
-          <div className="bg-slate-900/30 rounded-lg p-4 text-xs text-slate-500">
-            <p className="mb-2">
-              <strong className="text-slate-400">Arm Speed Benchmarks:</strong>{' '}
+          <div className="bg-slate-900/50 rounded-lg p-4 text-xs border border-slate-700">
+            <p className="mb-2 text-slate-300">
+              <strong className="text-slate-200">Arm Speed Benchmarks:</strong>{' '}
               Elite: &gt;5000°/s | Professional: 4000-5000°/s | Good: 3000-4000°/s
             </p>
-            <p>
-              <strong className="text-slate-400">ICC Rule:</strong>{' '}
+            <p className="text-slate-300">
+              <strong className="text-slate-200">ICC Rule:</strong>{' '}
               Elbow extension must not exceed 15° from arm-horizontal to ball release.
             </p>
           </div>
@@ -296,6 +304,7 @@ interface MetricCardProps {
   classification?: string;
   note?: string;
   confidence?: string;
+  cameraAngleQuality?: string;
 }
 
 function MetricCard({
@@ -308,7 +317,16 @@ function MetricCard({
   classification,
   note,
   confidence,
+  cameraAngleQuality,
 }: MetricCardProps) {
+  const qualityColors: Record<string, string> = {
+    excellent: 'text-green-400',
+    good: 'text-blue-400',
+    moderate: 'text-yellow-400',
+    poor: 'text-orange-400',
+    very_poor: 'text-red-400',
+  };
+  
   return (
     <div className="bg-slate-900/50 rounded-lg p-4">
       <div className="flex items-start justify-between mb-3">
@@ -340,12 +358,17 @@ function MetricCard({
         <p className="text-xs text-slate-500">{mainLabel}</p>
       </div>
 
-      {(note || confidence) && (
+      {(note || confidence || cameraAngleQuality) && (
         <div className="mt-3 pt-3 border-t border-slate-700">
           {note && <p className="text-xs text-slate-400">{note}</p>}
           {confidence && (
             <p className="text-xs text-slate-500 mt-1">
               Confidence: <span className="capitalize">{confidence}</span>
+            </p>
+          )}
+          {cameraAngleQuality && cameraAngleQuality !== 'unknown' && (
+            <p className="text-xs text-slate-500 mt-1">
+              Camera angle quality: <span className={`capitalize ${qualityColors[cameraAngleQuality] || 'text-slate-400'}`}>{cameraAngleQuality.replace('_', ' ')}</span>
             </p>
           )}
         </div>
