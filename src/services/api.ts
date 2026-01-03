@@ -68,11 +68,23 @@ apiClient.interceptors.response.use(
       
       switch (status) {
         case 401:
-          // Unauthorized - clear auth and redirect to login
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
-          toast.error('Session expired. Please login again.');
+          // Unauthorized - but be smart about when to force logout
+          // Don't force logout for DELETE operations - let component handle
+          // Don't force logout if user has a device ID (guest user)
+          const isDeleteOperation = error.config?.method?.toLowerCase() === 'delete';
+          const hasDeviceId = localStorage.getItem('device_id');
+          
+          if (isDeleteOperation || hasDeviceId) {
+            // Let the component handle the error instead of forcing logout
+            console.warn('401 on delete or guest user - not forcing logout');
+            toast.error('Unable to complete action. Please try again.');
+          } else {
+            // Full logout for other 401 cases
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+            toast.error('Session expired. Please login again.');
+          }
           break;
           
         case 410:

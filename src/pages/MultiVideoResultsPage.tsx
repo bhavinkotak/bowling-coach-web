@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Share2, Film, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Share2, Film, TrendingUp, Play } from 'lucide-react';
 import { ParameterCard } from '../components/Results';
 import { LoadingSpinner, Button, Badge } from '../components/Common';
 import AnalysisService from '../services/analysis';
@@ -13,6 +13,10 @@ export default function MultiVideoResultsPage() {
   const [result, setResult] = useState<MultiVideoAnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
+  
+  // Video playback state
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   
   // Ref for scrollable content container
   const contentContainerRef = useRef<HTMLDivElement>(null);
@@ -307,16 +311,38 @@ export default function MultiVideoResultsPage() {
                     {/* Video Container - No overlays needed, backend adds all annotations */}
                     <div className="relative aspect-video bg-black">
                       <video
+                        ref={videoRef}
                         key={currentClip.name}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain cursor-pointer"
                         src={getFullMediaUrl(currentClip.path)}
                         autoPlay
                         muted
                         playsInline
                         loop
+                        onClick={() => {
+                          if (videoRef.current) {
+                            if (videoRef.current.paused) {
+                              videoRef.current.play();
+                              setIsVideoPlaying(true);
+                            } else {
+                              videoRef.current.pause();
+                              setIsVideoPlaying(false);
+                            }
+                          }
+                        }}
+                        onPlay={() => setIsVideoPlaying(true)}
+                        onPause={() => setIsVideoPlaying(false)}
                       >
                         Your browser does not support the video tag.
                       </video>
+                      {/* Play/Pause Indicator - shows when paused */}
+                      {!isVideoPlaying && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center">
+                            <Play size={32} className="text-white ml-1" fill="white" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Quick Parameter Selector Pills */}

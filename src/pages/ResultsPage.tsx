@@ -21,6 +21,10 @@ export default function ResultsPage() {
   // Ref for scrollable content container
   const contentContainerRef = useRef<HTMLDivElement>(null);
   
+  // Video playback state
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(true);
+  
   // Gallery state for lightbox
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -354,15 +358,39 @@ export default function ResultsPage() {
                   <div className="relative bg-black" style={{ height: 'calc(100vh - 180px)', minHeight: '500px' }}>
                     {/* Video Player - No overlays needed, backend adds all annotations */}
                     {currentItem.clipUrl && (
-                      <video
-                        key={currentItem.clipUrl}
-                        className="w-full h-full object-contain"
-                        src={getFullMediaUrl(currentItem.clipUrl)}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                      />
+                      <div className="relative w-full h-full">
+                        <video
+                          ref={videoRef}
+                          key={currentItem.clipUrl}
+                          className="w-full h-full object-contain cursor-pointer"
+                          src={getFullMediaUrl(currentItem.clipUrl)}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          onClick={() => {
+                            if (videoRef.current) {
+                              if (videoRef.current.paused) {
+                                videoRef.current.play();
+                                setIsVideoPlaying(true);
+                              } else {
+                                videoRef.current.pause();
+                                setIsVideoPlaying(false);
+                              }
+                            }
+                          }}
+                          onPlay={() => setIsVideoPlaying(true)}
+                          onPause={() => setIsVideoPlaying(false)}
+                        />
+                        {/* Play/Pause Indicator - shows briefly on tap */}
+                        {!isVideoPlaying && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center">
+                              <Play size={32} className="text-white ml-1" fill="white" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                     
                     {/* Right Side Actions - Minimal */}
