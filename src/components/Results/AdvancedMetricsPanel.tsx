@@ -295,47 +295,50 @@ export default function AdvancedMetricsPanel({
                       </div>
                     )}
                     {/* Debug Snapshots */}
-                    {bowling_legality.debug_snapshots && (
-                      <div className="mt-3 pt-3 border-t border-slate-700">
-                        <div className="text-xs text-cyan-400 mb-2">📸 Debug Snapshots (tap to view)</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {bowling_legality.debug_snapshots.arm_horizontal && (
-                            <a 
-                              href={`${import.meta.env.VITE_API_BASE_URL || ''}${bowling_legality.debug_snapshots.arm_horizontal}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block"
-                            >
-                              <div className="bg-slate-800 rounded overflow-hidden border border-slate-600 hover:border-cyan-400 transition-colors">
-                                <img 
-                                  src={`${import.meta.env.VITE_API_BASE_URL || ''}${bowling_legality.debug_snapshots.arm_horizontal}`}
-                                  alt="Arm Horizontal"
-                                  className="w-full h-24 object-cover"
-                                />
-                                <div className="text-[10px] text-center py-1 text-slate-400">Arm Horizontal</div>
-                              </div>
-                            </a>
-                          )}
-                          {bowling_legality.debug_snapshots.release && (
-                            <a 
-                              href={`${import.meta.env.VITE_API_BASE_URL || ''}${bowling_legality.debug_snapshots.release}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block"
-                            >
-                              <div className="bg-slate-800 rounded overflow-hidden border border-slate-600 hover:border-cyan-400 transition-colors">
-                                <img 
-                                  src={`${import.meta.env.VITE_API_BASE_URL || ''}${bowling_legality.debug_snapshots.release}`}
-                                  alt="Ball Release"
-                                  className="w-full h-24 object-cover"
-                                />
-                                <div className="text-[10px] text-center py-1 text-slate-400">Ball Release</div>
-                              </div>
-                            </a>
-                          )}
+                    {bowling_legality.debug_snapshots && (() => {
+                      const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v2', '') || 'http://localhost:8000';
+                      return (
+                        <div className="mt-3 pt-3 border-t border-slate-700">
+                          <div className="text-xs text-cyan-400 mb-2">📸 Debug Snapshots (tap to view)</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {bowling_legality.debug_snapshots.arm_horizontal && (
+                              <a 
+                                href={`${baseUrl}${bowling_legality.debug_snapshots.arm_horizontal}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block"
+                              >
+                                <div className="bg-slate-800 rounded overflow-hidden border border-slate-600 hover:border-cyan-400 transition-colors">
+                                  <img 
+                                    src={`${baseUrl}${bowling_legality.debug_snapshots.arm_horizontal}`}
+                                    alt="Arm Horizontal"
+                                    className="w-full h-24 object-cover"
+                                  />
+                                  <div className="text-[10px] text-center py-1 text-slate-400">Arm Horizontal</div>
+                                </div>
+                              </a>
+                            )}
+                            {bowling_legality.debug_snapshots.release && (
+                              <a 
+                                href={`${baseUrl}${bowling_legality.debug_snapshots.release}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block"
+                              >
+                                <div className="bg-slate-800 rounded overflow-hidden border border-slate-600 hover:border-cyan-400 transition-colors">
+                                  <img 
+                                    src={`${baseUrl}${bowling_legality.debug_snapshots.release}`}
+                                    alt="Ball Release"
+                                    className="w-full h-24 object-cover"
+                                  />
+                                  <div className="text-[10px] text-center py-1 text-slate-400">Ball Release</div>
+                                </div>
+                              </a>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
               </div>
